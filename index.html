@@ -1,5 +1,5 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Painel Risco Climático</title>
+<title>Painel Risco Climático e Urbano</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -19,7 +19,8 @@
   --bg: #101a18; --surface: #182623; --fg: #e4eeeb; --muted: #9db3ad; --line: #2e4440;
   --accent: #5cc4b0; --on-accent: #0c1f1b; --warn-bg: #4a3a0c; --warn-fg: #fbe6a6;
   --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --veg: #7fd4a3; --veg-ma: #c6f0d6; --up: #f0968c; --down: #5cc4b0; color-scheme: dark }
-body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); }
 main, header, footer { max-width: 1040px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header { padding-block: 28px 8px; display: grid; gap: 12px; }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; margin: 0; text-wrap: balance; }
@@ -43,7 +44,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent)
 .temas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); gap: 24px; }
 .tema { background: var(--surface); border-top: 4px solid var(--c); padding: 16px; display: grid; gap: 12px; min-width: 0; }
 .tema h3 { color: var(--c); }
-.tema:last-child { grid-column: 1 / -1; }
+.modos button { font-family: var(--display); font-size: 1.1rem; padding: 10px 18px; }
 .grafico { position: relative; height: 270px; min-width: 0; }
 .rolar { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; font-variant-numeric: tabular-nums; }
@@ -63,9 +64,14 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 </style>
 
 <header>
-  <h1>Painel Risco Climático</h1>
-  <p>Área urbana suscetível a inundação e a deslizamento e dados do Módulo Urbano, de 1985 a 2025, no Brasil, nos biomas, estados, municípios e favelas. Busque um lugar e baixe o gráfico ou a planilha.</p>
+  <div class="linha modos" role="group" aria-label="Escolha a plataforma">
+    <button id="mRisco" class="sec">Risco Climático</button>
+    <button id="mUrbano" class="sec">Módulo Urbano</button>
+  </div>
+  <h1 id="titulo">Risco Climático</h1>
+  <p id="intro"></p>
   <p id="exemplo" hidden>DADOS DE EXEMPLO. Estes números são simulados e não podem ser usados.</p>
+  <div class="linha" id="camadas" hidden><span class="muted">Camada</span></div>
   <div class="busca">
     <label class="muted" for="q">Buscar bioma, estado, município ou favela</label>
     <input id="q" type="search" autocomplete="off" placeholder="Ex.: Petrópolis, Rocinha, Pará, Pampa">
@@ -80,8 +86,8 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
     <h2>Rankings de 2025</h2>
     <div class="linha">
       <span id="niveis" class="linha"></span>
-      <label class="muted" for="rTema">Tema</label>
-      <select id="rTema"><option value="f">Inundação</option><option value="l">Deslizamento</option><option value="v">Módulo Urbano</option></select>
+      <span id="blocoTema" class="linha"><label class="muted" for="rTema">Tema</label>
+      <select id="rTema"><option value="f">Inundação</option><option value="l">Deslizamento</option></select></span>
       <label class="muted" for="rUf">Estado</label>
       <select id="rUf"><option value="">Todos</option></select>
     </div>
@@ -97,7 +103,7 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 
 <footer>
   <h3>Antes de publicar</h3>
-  <p class="muted">Os números de inundação e deslizamento indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre. Os valores estão em hectares (ha), e 1 km² equivale a 100 ha.</p>
+  <p class="muted"><span id="notaRisco">Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre. </span>Os valores estão em hectares (ha), e 1 km² equivale a 100 ha.</p>
   <p class="muted">Os polígonos de favelas são os de 2022 e ficam fixos em toda a série. O número de 1985 mostra quanto do território das favelas de hoje estava mapeado naquele ano. A média histórica cobre 1985 a 2024. Os estados e o Brasil somam os municípios.</p>
   <div class="linha"><span class="muted" id="cita"></span><button id="copiar" class="sec">Copiar citação</button></div>
 </footer>
@@ -108,17 +114,19 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 <script>
 const $ = id => document.getElementById(id);
 const CL_RISCO = ["Médio", "Alto", "Muito alto"];
-const CHAVES = ["f", "l", "v"];
 const TEMAS = {
   f: { nome: "Inundação", rotulo: "Área sujeita a inundação", classes: CL_RISCO, total: "Total suscetível", titulo: "área urbana suscetível", cores: ["#74add1", "#2171b5", "#08306b"], css: "--flood", ma: "--flood-ma" },
   l: { nome: "Deslizamento", rotulo: "Área sujeita a deslizamento", classes: CL_RISCO, total: "Total suscetível", titulo: "área urbana suscetível", cores: ["#e8a33d", "#e0521f", "#8c0d2b"], css: "--slide", ma: "--slide-ma" },
-  // a última classe de cada tema é a que ordena o ranking
-  v: { nome: "Módulo Urbano", classes: ["Área urbanizada não vegetada", "Áreas verdes urbanas e vegetação periurbana", "Vegetação intraurbana"], total: "Total das três classes", titulo: "vegetação e área urbanizada", fonte: "MapBiomas, Módulo Urbano, Coleção 11", neutro: true, cores: ["#9a9a8e", "#74c476", "#1a7a43"], css: "--veg", ma: "--veg-ma" },
+  v: { nome: "Módulo Urbano", rotulo: "Área por camada", classes: ["Área urbanizada não vegetada", "Áreas verdes urbanas e vegetação periurbana", "Vegetação intraurbana"], total: "Total das três classes", titulo: "vegetação e área urbanizada", fonte: "MapBiomas, Módulo Urbano, Coleção 11", neutro: true, cores: ["#9a9a8e", "#74c476", "#1a7a43"], css: "--veg", ma: "--veg-ma" },
 };
 const TIPOS = { br: "País", bio: "Bioma", uf: "Estado", mun: "Município", fav: "Favela" };
 const NIVEIS = [["bio", "Biomas"], ["uf", "Estados"], ["mun", "Municípios"], ["fav", "Favelas"]];
 let META, ITENS = [], POR_ID = new Map(), cacheSerie = {}, graficos = [];
-let nivel = "mun", limite = 50, atual = null;
+let nivel = "mun", limite = 50, atual = null, modo = "risco", camada = 2;
+const urbano = () => modo === "urbano";
+const prefixo = () => urbano() ? "urbano-" : "";
+const temasModo = () => urbano() ? ["v"] : ["f", "l"];
+const temaRank = () => urbano() ? "v" : $("rTema").value;
 
 const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const fmtN = (v, d = 0) => v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -146,8 +154,8 @@ async function salvar(nome, blob) {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 const fonteDe = t => TEMAS[t].fonte || META.fonte;
-const leiame = () => [["Fontes", `${META.fonte}; ${TEMAS.v.fonte}`], ["Unidade", "hectares (ha)"], ["Média histórica", "média de 1985 a 2024"],
-  ["Leitura", "Inundação e deslizamento indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre."],
+const leiame = () => [["Fonte", urbano() ? TEMAS.v.fonte : META.fonte], ["Unidade", "hectares (ha)"], ["Média histórica", "média de 1985 a 2024"],
+  ...(urbano() ? [] : [["Leitura", "Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre."]]),
   ["Favelas", "Polígonos de 2022, fixos em toda a série."]];
 function salvarXlsx(nome, abas) {
   const wb = XLSX.utils.book_new();
@@ -170,15 +178,16 @@ function configGrafico(it, t, m, opts = {}) {
   const fundo = { id: "fundo", beforeDraw(c) { if (opts.png) { c.ctx.save(); c.ctx.fillStyle = "#fff"; c.ctx.fillRect(0, 0, c.width, c.height); c.ctx.restore(); } } };
   // o token troca o tom mais escuro no tema escuro; o PNG tem fundo branco e usa sempre a cor cheia
   const cor = i => i === 2 && !opts.png ? css.getPropertyValue(tema.ma).trim() : tema.cores[i];
+  const series = t === "v" ? [camada] : [2, 1, 0];
   return {
     type: "line", plugins: [fundo],
-    data: { labels: META.anos, datasets: tema.classes.map((c, i) => ({ label: c, data: m[i], borderColor: cor(i), backgroundColor: cor(i), borderWidth: opts.png ? 4 : 2.2, pointRadius: 0, pointHitRadius: 8 })).reverse() },
+    data: { labels: META.anos, datasets: series.map(i => ({ label: tema.classes[i], data: m[i], borderColor: cor(i), backgroundColor: cor(i), borderWidth: opts.png ? 4 : 2.2, pointRadius: 0, pointHitRadius: 8 })) },
     options: {
       responsive: !opts.png, maintainAspectRatio: false, animation: false, devicePixelRatio: opts.png ? 1 : undefined,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { position: "bottom", labels: { color: tinta, boxWidth: 16, font: { size: opts.png ? 24 : 12 } } },
-        title: { display: !!opts.png, text: `${tema.nome}: ${tema.titulo} em ${rotulo(it)}, 1985–2025`, align: "start", color: tinta, font: { size: 32, weight: "600" }, padding: { bottom: 18 } },
+        legend: { display: t !== "v", position: "bottom", labels: { color: tinta, boxWidth: 16, font: { size: opts.png ? 24 : 12 } } },
+        title: { display: !!opts.png, text: `${t === "v" ? tema.classes[camada] : tema.nome + ": " + tema.titulo} em ${rotulo(it)}, 1985–2025`, align: "start", color: tinta, font: { size: 32, weight: "600" }, padding: { bottom: 18 } },
         subtitle: { display: !!opts.png, text: `Fonte: ${fonteDe(t)}`, position: "bottom", align: "start", color: tinta, font: { size: 20 }, padding: { top: 14 } },
         tooltip: { callbacks: { label: c => `${c.dataset.label}: ${ha(c.parsed.y)} ha` } },
       },
@@ -192,7 +201,7 @@ function configGrafico(it, t, m, opts = {}) {
 function baixarPng(it, t, m) {
   const cv = document.createElement("canvas"); cv.width = 1600; cv.height = 900;
   const ch = new Chart(cv, configGrafico(it, t, m, { png: true }));
-  cv.toBlob(b => { ch.destroy(); salvar(`${slug(rotulo(it))}_${slug(TEMAS[t].nome)}.png`, b); });
+  cv.toBlob(b => { ch.destroy(); salvar(`${slug(rotulo(it))}_${slug(t === "v" ? TEMAS.v.classes[camada] : TEMAS[t].nome)}.png`, b); });
 }
 
 function tabelaComparacao(m, t) {
@@ -203,7 +212,7 @@ function tabelaComparacao(m, t) {
   ["Classe", "2025 (ha)", "2024 (ha)", "Média (ha)", "vs. 2024", "vs. média"].forEach(t => h.append(el("th", t)));
   [...TEMAS[t].classes, TEMAS[t].total].forEach((c, i) => {
     const s = linhas[i], med = media(s.slice(0, hoje)), r = tb.insertRow();
-    if (i === 2) r.className = "ma";
+    if (i === (t === "v" ? camada : 2)) r.className = "ma";
     const v24 = pct(s[hoje], s[ontem]), vm = pct(s[hoje], med);
     r.append(el("td", c), el("td", ha(s[hoje])), el("td", ha(s[ontem])), el("td", ha(med)), el("td", fmtVar(v24), clsVar(v24, t)), el("td", fmtVar(vm), clsVar(vm, t)));
   });
@@ -222,13 +231,13 @@ async function abrir(chave) {
   if (atual !== it) return;
   const topo = el("div"); topo.append(el("h2", rotulo(it)), el("p", TIPOS[it.tipo], "muted"));
   const temas = el("div", null, "temas");
-  for (const t of CHAVES) {
+  for (const t of temasModo()) {
     const m = dados[t], box = el("article", null, "tema");
     box.style.setProperty("--c", `var(${TEMAS[t].css})`);
-    box.append(el("h3", TEMAS[t].rotulo || TEMAS[t].nome));
+    box.append(el("h3", t === "v" ? TEMAS.v.classes[camada] : TEMAS[t].rotulo));
     if (!m) { box.append(el("p", TEMAS[t].neutro ? "Sem dados para este território." : "Sem área urbana mapeada como suscetível em nenhum ano da série.", "muted")); temas.append(box); continue; }
     const g = el("div", null, "grafico"), cv = el("canvas");
-    cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `${TEMAS[t].nome} em ${rotulo(it)}, ${TEMAS[t].titulo} por classe de 1985 a 2025`);
+    cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `${t === "v" ? TEMAS.v.classes[camada] : TEMAS[t].nome} em ${rotulo(it)}, de 1985 a 2025`);
     g.append(cv); box.append(g, tabelaComparacao(m, t));
     const b = el("div", null, "linha"), bp = el("button", "Baixar gráfico (PNG)", "sec");
     bp.onclick = () => baixarPng(it, t, m); b.append(bp); box.append(b);
@@ -236,7 +245,7 @@ async function abrir(chave) {
     graficos.push(new Chart(cv, configGrafico(it, t, m)));
   }
   const bx = el("button", "Baixar dados deste território (Excel)");
-  bx.onclick = () => salvarXlsx(`${slug(rotulo(it))}.xlsx`, CHAVES.filter(t => dados[t]).map(t => [TEMAS[t].nome,
+  bx.onclick = () => salvarXlsx(`${slug(rotulo(it))}.xlsx`, temasModo().filter(t => dados[t]).map(t => [TEMAS[t].nome,
     [["Ano", ...TEMAS[t].classes.map(c => c + " (ha)"), "Total (ha)"], ...META.anos.map((a, i) => [a, dados[t][0][i], dados[t][1][i], dados[t][2][i], +soma3(dados[t], i).toFixed(2)])]]));
   const bl = el("button", "Copiar link", "sec");
   bl.onclick = () => navigator.clipboard.writeText(location.href).then(() => toast("Link copiado."), () => toast("Copie o link na barra do navegador."));
@@ -244,19 +253,26 @@ async function abrir(chave) {
   f.replaceChildren(topo, temas, ac);
 }
 
+function valores(it, t) {
+  const v = it[t];
+  if (!v) return null;
+  return t === "v" ? [v[camada], v[3 + camada], v[6 + camada]] : [v[2], v[3], v[4]];
+}
+const focoRank = t => TEMAS[t].classes[t === "v" ? camada : 2];
 function filtrados() {
-  const t = $("rTema").value, uf = $("rUf").value;
-  return ITENS.filter(i => i.tipo === nivel && i[t] && (!uf || i.uf === uf)).sort((a, b) => b[t][2] - a[t][2] || b[t][0] + b[t][1] - a[t][0] - a[t][1]);
+  const t = temaRank(), uf = $("rUf").value, soma = it => it[t][0] + it[t][1] + it[t][2];
+  return ITENS.filter(i => i.tipo === nivel && (!uf || i.uf === uf) && valores(i, t) && (t !== "v" || valores(i, t)[0] > 0))
+    .sort((a, b) => valores(b, t)[0] - valores(a, t)[0] || (t === "v" ? 0 : soma(b) - soma(a)));
 }
 function desenharRank() {
-  const t = $("rTema").value, ls = filtrados(), tb = $("rank"); tb.replaceChildren();
+  const t = temaRank(), ls = filtrados(), tb = $("rank"), foco = focoRank(t), comTotal = t !== "v"; tb.replaceChildren();
   const h = tb.insertRow();
-  const foco = TEMAS[t].classes[2];
-  ["Posição", "Território", `${foco} 2025 (ha)`, `${foco} 2024 (ha)`, "Média (ha)", "vs. 2024", "vs. média", "Total 2025 (ha)"].forEach(x => h.append(el("th", x)));
+  ["Posição", "Território", `${foco} 2025 (ha)`, `${foco} 2024 (ha)`, "Média (ha)", "vs. 2024", "vs. média", ...(comTotal ? ["Total 2025 (ha)"] : [])].forEach(x => h.append(el("th", x)));
   ls.slice(0, limite).forEach((it, i) => {
-    const v = it[t], r = tb.insertRow(), a = el("a", rotulo(it)), v24 = pct(v[2], v[3]), vm = pct(v[2], v[4]), nm = el("td", null, "nome");
-    a.href = "#" + it.chave; nm.append(a);
-    r.append(el("td", i + 1), nm, el("td", ha(v[2])), el("td", ha(v[3])), el("td", ha(v[4])), el("td", fmtVar(v24), clsVar(v24, t)), el("td", fmtVar(vm), clsVar(vm, t)), el("td", ha(v[0] + v[1] + v[2])));
+    const [a25, a24, med] = valores(it, t), r = tb.insertRow(), a = el("a", rotulo(it)), v24 = pct(a25, a24), vm = pct(a25, med), nm = el("td", null, "nome");
+    a.href = "#" + prefixo() + it.chave; nm.append(a);
+    r.append(el("td", i + 1), nm, el("td", ha(a25)), el("td", ha(a24)), el("td", ha(med)), el("td", fmtVar(v24), clsVar(v24, t)), el("td", fmtVar(vm), clsVar(vm, t)));
+    if (comTotal) r.append(el("td", ha(it[t][0] + it[t][1] + it[t][2])));
   });
   $("mais").hidden = ls.length <= limite;
   const precisaUf = (nivel === "mun" || nivel === "fav") && !$("rUf").value;
@@ -265,9 +281,9 @@ function desenharRank() {
   document.querySelectorAll("#niveis button").forEach(b => b.setAttribute("aria-pressed", b.dataset.n === nivel));
 }
 function baixarRank() {
-  const t = $("rTema").value;
-  salvarXlsx(`ranking_${nivel}_${slug(TEMAS[t].nome)}_2025.xlsx`, [["Ranking 2025", [["Posição", "Território", "Estado", ...TEMAS[t].classes.map(c => c + " 2025 (ha)"), `${TEMAS[t].classes[2]} 2024 (ha)`, `${TEMAS[t].classes[2]}, média (ha)`, "Total 2025 (ha)"],
-    ...filtrados().map((it, i) => [i + 1, it.nome, it.uf, ...it[t], +(it[t][0] + it[t][1] + it[t][2]).toFixed(2)])]]]);
+  const t = temaRank(), foco = focoRank(t), risco = t !== "v";
+  salvarXlsx(`ranking_${nivel}_${slug(risco ? TEMAS[t].nome : foco)}_2025.xlsx`, [["Ranking 2025", [["Posição", "Território", "Estado", ...(risco ? TEMAS[t].classes.slice(0, 2).map(c => c + " 2025 (ha)") : []), `${foco} 2025 (ha)`, `${foco} 2024 (ha)`, `${foco}, média (ha)`, ...(risco ? ["Total 2025 (ha)"] : [])],
+    ...filtrados().map((it, i) => [i + 1, it.nome, it.uf, ...(risco ? it[t].slice(0, 2) : []), ...valores(it, t), ...(risco ? [+(it[t][0] + it[t][1] + it[t][2]).toFixed(2)] : [])])]]]);
 }
 async function baixarSerie() {
   const uf = $("rUf").value, lista = ITENS.filter(i => i.tipo === nivel && (!uf || i.uf === uf));
@@ -275,7 +291,7 @@ async function baixarSerie() {
   const dados = await serie(lista[0]);
   const aba = t => [["Território", "Estado", "Ano", ...TEMAS[t].classes.map(c => c + " (ha)"), "Total (ha)"],
     ...lista.flatMap(it => { const m = dados[it.chave]?.[t]; return m ? META.anos.map((a, i) => [it.nome, it.uf, a, m[0][i], m[1][i], m[2][i], +soma3(m, i).toFixed(2)]) : []; })];
-  salvarXlsx(`serie_${nivel}${uf ? "_" + uf : ""}_1985_2025.xlsx`, CHAVES.map(t => [TEMAS[t].nome, aba(t)]));
+  salvarXlsx(`serie_${nivel}${uf ? "_" + uf : ""}_1985_2025.xlsx`, temasModo().map(t => [TEMAS[t].nome, aba(t)]));
 }
 
 function buscar() {
@@ -287,7 +303,7 @@ function buscar() {
   if (!achados.length) res.append(el("p", "Nada encontrado. Confira a grafia ou busque pelo município.", "muted"));
   for (const it of achados) {
     const b = el("button"); b.append(el("span", rotulo(it)), el("small", TIPOS[it.tipo]));
-    b.onclick = () => { $("q").value = ""; res.hidden = true; location.hash = it.chave; };
+    b.onclick = () => { $("q").value = ""; res.hidden = true; location.hash = prefixo() + it.chave; };
     res.append(b);
   }
   res.hidden = false;
@@ -301,9 +317,10 @@ async function iniciar() {
     ITENS.forEach(i => POR_ID.set(i.chave, i));
   } catch { $("ficha").replaceChildren(el("p", "Não foi possível carregar os dados. Recarregue a página.")); return; }
   $("exemplo").hidden = !META.exemplo;
-  const cita = `Fontes: ${META.fonte}; ${TEMAS.v.fonte}.`;
-  $("cita").textContent = cita;
-  $("copiar").onclick = () => navigator.clipboard.writeText(cita).then(() => toast("Citação copiada."), () => toast("Selecione o texto da citação e copie."));
+  $("copiar").onclick = () => navigator.clipboard.writeText($("cita").textContent).then(() => toast("Citação copiada."), () => toast("Selecione o texto da citação e copie."));
+  TEMAS.v.classes.forEach((c, i) => { const b = el("button", c, "sec"); b.dataset.c = i; b.onclick = () => { camada = i; limite = 50; aplicar(); }; $("camadas").append(b); });
+  $("mRisco").onclick = () => { location.hash = atual ? atual.chave : "br-0"; };
+  $("mUrbano").onclick = () => { location.hash = "urbano-" + (atual ? atual.chave : "br-0"); };
   for (const [n, t] of NIVEIS) { const b = el("button", t, "sec"); b.dataset.n = n; b.onclick = () => { nivel = n; limite = 50; desenharRank(); }; $("niveis").append(b); }
   [...new Set(ITENS.filter(i => i.tipo === "mun" || i.tipo === "fav").map(i => i.uf))].sort().forEach(u => $("rUf").append(new Option(u, u)));
   $("rTema").onchange = $("rUf").onchange = () => { limite = 50; desenharRank(); };
@@ -311,9 +328,21 @@ async function iniciar() {
   $("xRank").onclick = baixarRank; $("xSerie").onclick = baixarSerie;
   $("q").oninput = buscar;
   $("q").onkeydown = e => { if (e.key === "Enter") $("res").querySelector("button")?.click(); if (e.key === "Escape") $("res").hidden = true; };
-  addEventListener("hashchange", () => abrir(location.hash.slice(1)));
+  addEventListener("hashchange", aplicar);
+  aplicar();
+}
+function aplicar() {
+  const h = location.hash.slice(1);
+  modo = h.startsWith("urbano") ? "urbano" : "risco";
+  const u = urbano();
+  $("mRisco").setAttribute("aria-pressed", !u); $("mUrbano").setAttribute("aria-pressed", u);
+  $("titulo").textContent = u ? "Módulo Urbano" : "Risco Climático";
+  $("intro").textContent = (u ? "Área urbanizada e vegetação urbana" : "Área urbana suscetível a inundação e a deslizamento") + ", de 1985 a 2025, no Brasil, nos biomas, estados, municípios e favelas. Busque um lugar e baixe o gráfico ou a planilha.";
+  $("camadas").hidden = !u; $("blocoTema").hidden = u; $("notaRisco").hidden = u;
+  $("cita").textContent = `Fonte: ${u ? TEMAS.v.fonte : META.fonte}.`;
+  document.querySelectorAll("#camadas button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.c === camada));
   desenharRank();
-  abrir(location.hash.slice(1) || "br-0");
+  abrir(h.replace(/^urbano-?/, "") || "br-0");
 }
 iniciar();
 </script>
