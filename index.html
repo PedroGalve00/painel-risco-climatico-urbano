@@ -1,0 +1,311 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel Risco Climático</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: uma coluna de consulta. Busca no topo, ficha do território, ranking abaixo. */
+:root {
+  --bg: #f4f7f6; --surface: #ffffff; --fg: #17302c; --muted: #55706a; --line: #d3dedb;
+  --accent: #0f6b5c; --on-accent: #ffffff; --warn-bg: #fdf0c8; --warn-fg: #5c4300;
+  --flood: #1b5fa8; --slide: #a8342a; --flood-ma: #08306b; --slide-ma: #8c0d2b; --up: #a8342a; --down: #0f6b5c;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101a18; --surface: #182623; --fg: #e4eeeb; --muted: #9db3ad; --line: #2e4440;
+  --accent: #5cc4b0; --on-accent: #0c1f1b; --warn-bg: #4a3a0c; --warn-fg: #fbe6a6;
+  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --up: #f0968c; --down: #5cc4b0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #101a18; --surface: #182623; --fg: #e4eeeb; --muted: #9db3ad; --line: #2e4440;
+  --accent: #5cc4b0; --on-accent: #0c1f1b; --warn-bg: #4a3a0c; --warn-fg: #fbe6a6;
+  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --up: #f0968c; --down: #5cc4b0; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); }
+main, header, footer { max-width: 1040px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { padding-block: 28px 8px; display: grid; gap: 12px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: 2rem; } h2 { font-size: 1.6rem; } h3 { font-size: 1.2rem; }
+p { margin: 0; max-width: 68ch; } .muted { color: var(--muted); font-size: .9rem; }
+main { display: grid; gap: 36px; padding-block: 16px 40px; }
+section { display: grid; gap: 14px; min-width: 0; }
+#exemplo { background: var(--warn-bg); color: var(--warn-fg); padding: 10px 14px; font-weight: 600; }
+.busca { position: relative; }
+input, select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 9px 11px; max-width: 100%; }
+#q { width: 100%; font-size: 1.1rem; padding: 13px 14px; border-color: var(--accent); }
+#res { position: absolute; z-index: 5; left: 0; right: 0; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 6px 18px #0003; max-height: 340px; overflow-y: auto; }
+#res button { display: flex; width: 100%; justify-content: space-between; gap: 12px; text-align: left; background: none; color: var(--fg); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 9px 12px; font-weight: 400; }
+#res button:hover, #res button:focus-visible { background: var(--bg); }
+#res small { color: var(--muted); white-space: nowrap; }
+button { font: inherit; font-weight: 500; cursor: pointer; background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); border-radius: 4px; padding: 8px 13px; }
+button.sec { background: none; color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.temas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); gap: 24px; }
+.tema { background: var(--surface); border-top: 4px solid var(--c); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.tema h3 { color: var(--c); }
+.grafico { position: relative; height: 270px; min-width: 0; }
+.rolar { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: .82rem; }
+th:first-child, td:first-child { text-align: left; }
+td.nome { white-space: normal; min-width: 170px; }
+td.nome a { color: var(--accent); }
+tr.ma td { font-weight: 600; }
+.tema table { font-size: .84rem; } .tema th, .tema td { padding: 5px 4px; }
+#rank th:nth-child(2), td.nome { text-align: left; }
+.up { color: var(--up); } .down { color: var(--down); }
+#toast { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 14px; border-radius: 4px; max-width: 90%; }
+footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header>
+  <h1>Painel Risco Climático</h1>
+  <p>Área urbana suscetível a inundação e a deslizamento, de 1985 a 2025, no Brasil, nos biomas, estados, municípios e favelas. Busque um lugar e baixe o gráfico ou a planilha.</p>
+  <p id="exemplo" hidden>DADOS DE EXEMPLO. Estes números são simulados e não podem ser usados.</p>
+  <div class="busca">
+    <label class="muted" for="q">Buscar bioma, estado, município ou favela</label>
+    <input id="q" type="search" autocomplete="off" placeholder="Ex.: Petrópolis, Rocinha, Pará, Pampa">
+    <div id="res" hidden></div>
+  </div>
+</header>
+
+<main>
+  <section id="ficha" aria-live="polite"><p class="muted">Carregando dados…</p></section>
+
+  <section>
+    <h2>Rankings de 2025</h2>
+    <div class="linha">
+      <span id="niveis" class="linha"></span>
+      <label class="muted" for="rTema">Tema</label>
+      <select id="rTema"><option value="f">Inundação</option><option value="l">Deslizamento</option></select>
+      <label class="muted" for="rUf">Estado</label>
+      <select id="rUf"><option value="">Todos</option></select>
+    </div>
+    <div class="rolar"><table id="rank"></table></div>
+    <div class="linha">
+      <button id="mais" class="sec">Mostrar mais 50</button>
+      <button id="xRank">Baixar esta tabela (Excel)</button>
+      <button id="xSerie">Baixar série 1985–2025 (Excel)</button>
+      <span id="hint" class="muted"></span>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <h3>Antes de publicar</h3>
+  <p class="muted">Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre. Os valores estão em hectares (ha), e 1 km² equivale a 100 ha.</p>
+  <p class="muted">Os polígonos de favelas são os de 2022 e ficam fixos em toda a série. O número de 1985 mostra quanto do território das favelas de hoje estava mapeado naquele ano. A média histórica cobre 1985 a 2024. Os estados e o Brasil somam os municípios.</p>
+  <div class="linha"><span class="muted" id="cita"></span><button id="copiar" class="sec">Copiar citação</button></div>
+</footer>
+<div id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const CLASSES = ["Médio", "Alto", "Muito alto"];
+const TEMAS = {
+  f: { nome: "Inundação", cores: ["#74add1", "#2171b5", "#08306b"], css: "--flood", ma: "--flood-ma" },
+  l: { nome: "Deslizamento", cores: ["#e8a33d", "#e0521f", "#8c0d2b"], css: "--slide", ma: "--slide-ma" },
+};
+const TIPOS = { br: "País", bio: "Bioma", uf: "Estado", mun: "Município", fav: "Favela" };
+const NIVEIS = [["bio", "Biomas"], ["uf", "Estados"], ["mun", "Municípios"], ["fav", "Favelas"]];
+let META, ITENS = [], POR_ID = new Map(), cacheSerie = {}, graficos = [];
+let nivel = "mun", limite = 50, atual = null;
+
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const fmtN = (v, d = 0) => v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+// guia editorial: área inteira; abaixo de 0,1 ha escreve "<0,1"
+const ha = v => v === 0 ? "0" : v < 0.1 ? "<0,1" : v < 1 ? fmtN(v, 1) : fmtN(Math.round(v));
+const pct = (a, b) => b > 0 ? 100 * (a - b) / b : null;
+const fmtVar = p => p === null ? "–" : (p >= 0 ? "+" : "−") + fmtN(Math.abs(p), 1) + "%";
+const clsVar = p => p === null || Math.abs(p) < 0.05 ? "" : p > 0 ? "up" : "down";
+const media = a => a.reduce((s, v) => s + v, 0) / a.length;
+const soma3 = (m, i) => m[0][i] + m[1][i] + m[2][i];
+const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
+const toast = t => { const e = $("toast"); e.textContent = t; e.hidden = false; clearTimeout(e._t); e._t = setTimeout(() => e.hidden = true, 4000); };
+const rotulo = it => it.sub ? `${it.nome}, ${it.sub}` : it.nome;
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+async function salvar(nome, blob) {
+  const d = window.claude ? await window.claude.use("downloads") : null;
+  if (d) {
+    try { await d.save({ filename: nome, data: blob }); toast("Arquivo enviado para download."); }
+    catch (e) { if (e.code !== "declined") toast("Não foi possível baixar aqui. Abra o painel no navegador e tente de novo."); }
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = nome; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+const leiame = () => [["Fonte", META.fonte], ["Unidade", "hectares (ha)"], ["Média histórica", "média de 1985 a 2024"],
+  ["Leitura", "Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre."],
+  ["Favelas", "Polígonos de 2022, fixos em toda a série."]];
+function salvarXlsx(nome, abas) {
+  const wb = XLSX.utils.book_new();
+  for (const [n, linhas] of abas) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(linhas), n);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(leiame()), "Leia-me");
+  return salvar(nome, new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]));
+}
+
+async function serie(it) {
+  const arq = it.tipo === "mun" || it.tipo === "fav" ? `${it.tipo}_${it.uf}` : "agregados";
+  cacheSerie[arq] ??= fetch(`data/${arq}.json`).then(r => { if (!r.ok) throw new Error(arq); return r.json(); });
+  return cacheSerie[arq];
+}
+
+function configGrafico(it, t, m, opts = {}) {
+  const tema = TEMAS[t];
+  const css = getComputedStyle(document.documentElement);
+  const tinta = opts.png ? "#17302c" : css.getPropertyValue("--muted").trim();
+  const grade = opts.png ? "#e3e8e6" : css.getPropertyValue("--line").trim();
+  const fundo = { id: "fundo", beforeDraw(c) { if (opts.png) { c.ctx.save(); c.ctx.fillStyle = "#fff"; c.ctx.fillRect(0, 0, c.width, c.height); c.ctx.restore(); } } };
+  // o token troca o tom mais escuro no tema escuro; o PNG tem fundo branco e usa sempre a cor cheia
+  const cor = i => i === 2 && !opts.png ? css.getPropertyValue(tema.ma).trim() : tema.cores[i];
+  return {
+    type: "line", plugins: [fundo],
+    data: { labels: META.anos, datasets: CLASSES.map((c, i) => ({ label: c, data: m[i], borderColor: cor(i), backgroundColor: cor(i), borderWidth: opts.png ? 4 : 2.2, pointRadius: 0, pointHitRadius: 8 })).reverse() },
+    options: {
+      responsive: !opts.png, maintainAspectRatio: false, animation: false, devicePixelRatio: opts.png ? 1 : undefined,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { position: "bottom", labels: { color: tinta, boxWidth: 16, font: { size: opts.png ? 24 : 12 } } },
+        title: { display: !!opts.png, text: `${tema.nome}: área urbana suscetível em ${rotulo(it)}, 1985–2025`, align: "start", color: tinta, font: { size: 32, weight: "600" }, padding: { bottom: 18 } },
+        subtitle: { display: !!opts.png, text: `Fonte: ${META.fonte}`, position: "bottom", align: "start", color: tinta, font: { size: 20 }, padding: { top: 14 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${ha(c.parsed.y)} ha` } },
+      },
+      scales: {
+        x: { ticks: { color: tinta, maxTicksLimit: 9, font: { size: opts.png ? 22 : 11 } }, grid: { display: false } },
+        y: { beginAtZero: true, title: { display: true, text: "hectares", color: tinta, font: { size: opts.png ? 22 : 11 } }, ticks: { color: tinta, font: { size: opts.png ? 22 : 11 }, callback: v => fmtN(v) }, grid: { color: grade } },
+      },
+    },
+  };
+}
+function baixarPng(it, t, m) {
+  const cv = document.createElement("canvas"); cv.width = 1600; cv.height = 900;
+  const ch = new Chart(cv, configGrafico(it, t, m, { png: true }));
+  cv.toBlob(b => { ch.destroy(); salvar(`${slug(rotulo(it))}_${slug(TEMAS[t].nome)}.png`, b); });
+}
+
+function tabelaComparacao(m) {
+  const n = META.anos.length, hoje = n - 1, ontem = n - 2;
+  const linhas = [...m, m[0].map((_, i) => soma3(m, i))];
+  const tb = el("table");
+  const h = tb.insertRow();
+  ["Classe", "2025 (ha)", "2024 (ha)", "Média (ha)", "vs. 2024", "vs. média"].forEach(t => h.append(el("th", t)));
+  [...CLASSES, "Total suscetível"].forEach((c, i) => {
+    const s = linhas[i], med = media(s.slice(0, hoje)), r = tb.insertRow();
+    if (i === 2) r.className = "ma";
+    const v24 = pct(s[hoje], s[ontem]), vm = pct(s[hoje], med);
+    r.append(el("td", c), el("td", ha(s[hoje])), el("td", ha(s[ontem])), el("td", ha(med)), el("td", fmtVar(v24), clsVar(v24)), el("td", fmtVar(vm), clsVar(vm)));
+  });
+  const w = el("div", null, "rolar"); w.append(tb); return w;
+}
+
+async function abrir(chave) {
+  const it = POR_ID.get(chave) || POR_ID.get("br-0");
+  if (!it) return;
+  atual = it;
+  const f = $("ficha"); f.replaceChildren(el("p", "Carregando dados…", "muted"));
+  graficos.forEach(c => c.destroy()); graficos = [];
+  let dados;
+  try { dados = (await serie(it))[it.chave] || {}; }
+  catch { f.replaceChildren(el("p", "Não foi possível carregar os dados deste território. Recarregue a página.")); return; }
+  if (atual !== it) return;
+  const topo = el("div"); topo.append(el("h2", rotulo(it)), el("p", TIPOS[it.tipo], "muted"));
+  const temas = el("div", null, "temas");
+  for (const t of ["f", "l"]) {
+    const m = dados[t], box = el("article", null, "tema");
+    box.style.setProperty("--c", `var(${TEMAS[t].css})`);
+    box.append(el("h3", TEMAS[t].nome));
+    if (!m) { box.append(el("p", "Sem área urbana mapeada como suscetível em nenhum ano da série.", "muted")); temas.append(box); continue; }
+    const g = el("div", null, "grafico"), cv = el("canvas");
+    cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `${TEMAS[t].nome} em ${rotulo(it)}, área suscetível por classe de 1985 a 2025`);
+    g.append(cv); box.append(g, tabelaComparacao(m));
+    const b = el("div", null, "linha"), bp = el("button", "Baixar gráfico (PNG)", "sec");
+    bp.onclick = () => baixarPng(it, t, m); b.append(bp); box.append(b);
+    temas.append(box);
+    graficos.push(new Chart(cv, configGrafico(it, t, m)));
+  }
+  const bx = el("button", "Baixar dados deste território (Excel)");
+  bx.onclick = () => salvarXlsx(`${slug(rotulo(it))}.xlsx`, ["f", "l"].filter(t => dados[t]).map(t => [TEMAS[t].nome,
+    [["Ano", ...CLASSES.map(c => c + " (ha)"), "Total (ha)"], ...META.anos.map((a, i) => [a, dados[t][0][i], dados[t][1][i], dados[t][2][i], +soma3(dados[t], i).toFixed(2)])]]));
+  const bl = el("button", "Copiar link", "sec");
+  bl.onclick = () => navigator.clipboard.writeText(location.href).then(() => toast("Link copiado."), () => toast("Copie o link na barra do navegador."));
+  const ac = el("div", null, "linha"); ac.append(bx, bl);
+  f.replaceChildren(topo, temas, ac);
+}
+
+function filtrados() {
+  const t = $("rTema").value, uf = $("rUf").value;
+  return ITENS.filter(i => i.tipo === nivel && i[t] && (!uf || i.uf === uf)).sort((a, b) => b[t][2] - a[t][2] || b[t][0] + b[t][1] - a[t][0] - a[t][1]);
+}
+function desenharRank() {
+  const t = $("rTema").value, ls = filtrados(), tb = $("rank"); tb.replaceChildren();
+  const h = tb.insertRow();
+  ["Posição", "Território", "Muito alto 2025 (ha)", "Muito alto 2024 (ha)", "Média (ha)", "vs. 2024", "vs. média", "Total 2025 (ha)"].forEach(x => h.append(el("th", x)));
+  ls.slice(0, limite).forEach((it, i) => {
+    const v = it[t], r = tb.insertRow(), a = el("a", rotulo(it)), v24 = pct(v[2], v[3]), vm = pct(v[2], v[4]), nm = el("td", null, "nome");
+    a.href = "#" + it.chave; nm.append(a);
+    r.append(el("td", i + 1), nm, el("td", ha(v[2])), el("td", ha(v[3])), el("td", ha(v[4])), el("td", fmtVar(v24), clsVar(v24)), el("td", fmtVar(vm), clsVar(vm)), el("td", ha(v[0] + v[1] + v[2])));
+  });
+  $("mais").hidden = ls.length <= limite;
+  const precisaUf = (nivel === "mun" || nivel === "fav") && !$("rUf").value;
+  $("xSerie").disabled = precisaUf;
+  $("hint").textContent = precisaUf ? "Escolha um estado para baixar a série." : `${fmtN(ls.length)} territórios com área suscetível.`;
+  document.querySelectorAll("#niveis button").forEach(b => b.setAttribute("aria-pressed", b.dataset.n === nivel));
+}
+function baixarRank() {
+  const t = $("rTema").value;
+  salvarXlsx(`ranking_${nivel}_${slug(TEMAS[t].nome)}_2025.xlsx`, [["Ranking 2025", [["Posição", "Território", "Estado", "Médio 2025 (ha)", "Alto 2025 (ha)", "Muito alto 2025 (ha)", "Muito alto 2024 (ha)", "Muito alto, média (ha)", "Total 2025 (ha)"],
+    ...filtrados().map((it, i) => [i + 1, it.nome, it.uf, ...it[t], +(it[t][0] + it[t][1] + it[t][2]).toFixed(2)])]]]);
+}
+async function baixarSerie() {
+  const uf = $("rUf").value, lista = ITENS.filter(i => i.tipo === nivel && (!uf || i.uf === uf));
+  if (!lista.length) return;
+  const dados = await serie(lista[0]);
+  const aba = t => [["Território", "Estado", "Ano", ...CLASSES.map(c => c + " (ha)"), "Total (ha)"],
+    ...lista.flatMap(it => { const m = dados[it.chave]?.[t]; return m ? META.anos.map((a, i) => [it.nome, it.uf, a, m[0][i], m[1][i], m[2][i], +soma3(m, i).toFixed(2)]) : []; })];
+  salvarXlsx(`serie_${nivel}${uf ? "_" + uf : ""}_1985_2025.xlsx`, [["Inundação", aba("f")], ["Deslizamento", aba("l")]]);
+}
+
+function buscar() {
+  const termo = norm($("q").value.trim()), res = $("res"); res.replaceChildren();
+  if (termo.length < 2) { res.hidden = true; return; }
+  const ordem = { br: 0, bio: 1, uf: 2, mun: 3, fav: 4 };
+  const achados = ITENS.filter(i => i.busca.includes(termo)).sort((a, b) =>
+    b.busca.startsWith(termo) - a.busca.startsWith(termo) || ordem[a.tipo] - ordem[b.tipo] || a.nome.localeCompare(b.nome, "pt-BR")).slice(0, 12);
+  if (!achados.length) res.append(el("p", "Nada encontrado. Confira a grafia ou busque pelo município.", "muted"));
+  for (const it of achados) {
+    const b = el("button"); b.append(el("span", rotulo(it)), el("small", TIPOS[it.tipo]));
+    b.onclick = () => { $("q").value = ""; res.hidden = true; location.hash = it.chave; };
+    res.append(b);
+  }
+  res.hidden = false;
+}
+
+async function iniciar() {
+  try {
+    const r = await fetch("data/index.json"); if (!r.ok) throw 0;
+    const d = await r.json(); META = d.meta;
+    ITENS = d.itens.map(([tipo, id, nome, sub, uf, f, l]) => ({ tipo, id, nome, sub, uf, f, l, chave: `${tipo}-${id}`, busca: norm(`${nome} ${sub}`) }));
+    ITENS.forEach(i => POR_ID.set(i.chave, i));
+  } catch { $("ficha").replaceChildren(el("p", "Não foi possível carregar os dados. Recarregue a página.")); return; }
+  $("exemplo").hidden = !META.exemplo;
+  $("cita").textContent = `Fonte: ${META.fonte}.`;
+  $("copiar").onclick = () => navigator.clipboard.writeText(`Fonte: ${META.fonte}.`).then(() => toast("Citação copiada."), () => toast("Selecione o texto da citação e copie."));
+  for (const [n, t] of NIVEIS) { const b = el("button", t, "sec"); b.dataset.n = n; b.onclick = () => { nivel = n; limite = 50; desenharRank(); }; $("niveis").append(b); }
+  [...new Set(ITENS.filter(i => i.tipo === "mun" || i.tipo === "fav").map(i => i.uf))].sort().forEach(u => $("rUf").append(new Option(u, u)));
+  $("rTema").onchange = $("rUf").onchange = () => { limite = 50; desenharRank(); };
+  $("mais").onclick = () => { limite += 50; desenharRank(); };
+  $("xRank").onclick = baixarRank; $("xSerie").onclick = baixarSerie;
+  $("q").oninput = buscar;
+  $("q").onkeydown = e => { if (e.key === "Enter") $("res").querySelector("button")?.click(); if (e.key === "Escape") $("res").hidden = true; };
+  addEventListener("hashchange", () => abrir(location.hash.slice(1)));
+  desenharRank();
+  abrir(location.hash.slice(1) || "br-0");
+}
+iniciar();
+</script>
