@@ -7,18 +7,18 @@
 :root {
   --bg: #f4f7f6; --surface: #ffffff; --fg: #17302c; --muted: #55706a; --line: #d3dedb;
   --accent: #0f6b5c; --on-accent: #ffffff; --warn-bg: #fdf0c8; --warn-fg: #5c4300;
-  --flood: #1b5fa8; --slide: #a8342a; --flood-ma: #08306b; --slide-ma: #8c0d2b; --up: #a8342a; --down: #0f6b5c;
+  --flood: #1b5fa8; --slide: #a8342a; --flood-ma: #08306b; --slide-ma: #8c0d2b; --veg: #1f7a4d; --veg-ma: #1a7a43; --up: #a8342a; --down: #0f6b5c;
   --display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #101a18; --surface: #182623; --fg: #e4eeeb; --muted: #9db3ad; --line: #2e4440;
   --accent: #5cc4b0; --on-accent: #0c1f1b; --warn-bg: #4a3a0c; --warn-fg: #fbe6a6;
-  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --up: #f0968c; --down: #5cc4b0; color-scheme: dark } }
+  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --veg: #7fd4a3; --veg-ma: #c6f0d6; --up: #f0968c; --down: #5cc4b0; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #101a18; --surface: #182623; --fg: #e4eeeb; --muted: #9db3ad; --line: #2e4440;
   --accent: #5cc4b0; --on-accent: #0c1f1b; --warn-bg: #4a3a0c; --warn-fg: #fbe6a6;
-  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --up: #f0968c; --down: #5cc4b0; color-scheme: dark }
+  --flood: #7db6f0; --slide: #f0968c; --flood-ma: #d5e9ff; --slide-ma: #ffd0ca; --veg: #7fd4a3; --veg-ma: #c6f0d6; --up: #f0968c; --down: #5cc4b0; color-scheme: dark }
 body { background: var(--bg); color: var(--fg); font: 16px/1.5 var(--body); }
 main, header, footer { max-width: 1040px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header { padding-block: 28px 8px; display: grid; gap: 12px; }
@@ -43,6 +43,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent)
 .temas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); gap: 24px; }
 .tema { background: var(--surface); border-top: 4px solid var(--c); padding: 16px; display: grid; gap: 12px; min-width: 0; }
 .tema h3 { color: var(--c); }
+.tema:last-child { grid-column: 1 / -1; }
 .grafico { position: relative; height: 270px; min-width: 0; }
 .rolar { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; font-variant-numeric: tabular-nums; }
@@ -54,6 +55,7 @@ td.nome a { color: var(--accent); }
 tr.ma td { font-weight: 600; }
 .tema table { font-size: .84rem; } .tema th, .tema td { padding: 5px 4px; }
 #rank th:nth-child(2), td.nome { text-align: left; }
+#rank th { white-space: normal; vertical-align: bottom; }
 .up { color: var(--up); } .down { color: var(--down); }
 #toast { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 14px; border-radius: 4px; max-width: 90%; }
 footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
@@ -62,7 +64,7 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 
 <header>
   <h1>Painel Risco Climático</h1>
-  <p>Área urbana suscetível a inundação e a deslizamento, de 1985 a 2025, no Brasil, nos biomas, estados, municípios e favelas. Busque um lugar e baixe o gráfico ou a planilha.</p>
+  <p>Área urbana suscetível a inundação e a deslizamento e dados do Módulo Urbano, de 1985 a 2025, no Brasil, nos biomas, estados, municípios e favelas. Busque um lugar e baixe o gráfico ou a planilha.</p>
   <p id="exemplo" hidden>DADOS DE EXEMPLO. Estes números são simulados e não podem ser usados.</p>
   <div class="busca">
     <label class="muted" for="q">Buscar bioma, estado, município ou favela</label>
@@ -79,7 +81,7 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
     <div class="linha">
       <span id="niveis" class="linha"></span>
       <label class="muted" for="rTema">Tema</label>
-      <select id="rTema"><option value="f">Inundação</option><option value="l">Deslizamento</option></select>
+      <select id="rTema"><option value="f">Inundação</option><option value="l">Deslizamento</option><option value="v">Módulo Urbano</option></select>
       <label class="muted" for="rUf">Estado</label>
       <select id="rUf"><option value="">Todos</option></select>
     </div>
@@ -95,7 +97,7 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 
 <footer>
   <h3>Antes de publicar</h3>
-  <p class="muted">Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre. Os valores estão em hectares (ha), e 1 km² equivale a 100 ha.</p>
+  <p class="muted">Os números de inundação e deslizamento indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre. Os valores estão em hectares (ha), e 1 km² equivale a 100 ha.</p>
   <p class="muted">Os polígonos de favelas são os de 2022 e ficam fixos em toda a série. O número de 1985 mostra quanto do território das favelas de hoje estava mapeado naquele ano. A média histórica cobre 1985 a 2024. Os estados e o Brasil somam os municípios.</p>
   <div class="linha"><span class="muted" id="cita"></span><button id="copiar" class="sec">Copiar citação</button></div>
 </footer>
@@ -105,10 +107,13 @@ footer { padding-block: 22px 40px; border-top: 1px solid var(--line); display: g
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const CLASSES = ["Médio", "Alto", "Muito alto"];
+const CL_RISCO = ["Médio", "Alto", "Muito alto"];
+const CHAVES = ["f", "l", "v"];
 const TEMAS = {
-  f: { nome: "Inundação", cores: ["#74add1", "#2171b5", "#08306b"], css: "--flood", ma: "--flood-ma" },
-  l: { nome: "Deslizamento", cores: ["#e8a33d", "#e0521f", "#8c0d2b"], css: "--slide", ma: "--slide-ma" },
+  f: { nome: "Inundação", rotulo: "Área sujeita a inundação", classes: CL_RISCO, total: "Total suscetível", titulo: "área urbana suscetível", cores: ["#74add1", "#2171b5", "#08306b"], css: "--flood", ma: "--flood-ma" },
+  l: { nome: "Deslizamento", rotulo: "Área sujeita a deslizamento", classes: CL_RISCO, total: "Total suscetível", titulo: "área urbana suscetível", cores: ["#e8a33d", "#e0521f", "#8c0d2b"], css: "--slide", ma: "--slide-ma" },
+  // a última classe de cada tema é a que ordena o ranking
+  v: { nome: "Módulo Urbano", classes: ["Área urbanizada não vegetada", "Áreas verdes urbanas e vegetação periurbana", "Vegetação intraurbana"], total: "Total das três classes", titulo: "vegetação e área urbanizada", fonte: "MapBiomas, Módulo Urbano, Coleção 11", neutro: true, cores: ["#9a9a8e", "#74c476", "#1a7a43"], css: "--veg", ma: "--veg-ma" },
 };
 const TIPOS = { br: "País", bio: "Bioma", uf: "Estado", mun: "Município", fav: "Favela" };
 const NIVEIS = [["bio", "Biomas"], ["uf", "Estados"], ["mun", "Municípios"], ["fav", "Favelas"]];
@@ -121,7 +126,7 @@ const fmtN = (v, d = 0) => v.toLocaleString("pt-BR", { minimumFractionDigits: d,
 const ha = v => v === 0 ? "0" : v < 0.1 ? "<0,1" : v < 1 ? fmtN(v, 1) : fmtN(Math.round(v));
 const pct = (a, b) => b > 0 ? 100 * (a - b) / b : null;
 const fmtVar = p => p === null ? "–" : (p >= 0 ? "+" : "−") + fmtN(Math.abs(p), 1) + "%";
-const clsVar = p => p === null || Math.abs(p) < 0.05 ? "" : p > 0 ? "up" : "down";
+const clsVar = (p, t) => p === null || TEMAS[t].neutro || Math.abs(p) < 0.05 ? "" : p > 0 ? "up" : "down";
 const media = a => a.reduce((s, v) => s + v, 0) / a.length;
 const soma3 = (m, i) => m[0][i] + m[1][i] + m[2][i];
 const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
@@ -140,8 +145,9 @@ async function salvar(nome, blob) {
   a.href = URL.createObjectURL(blob); a.download = nome; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-const leiame = () => [["Fonte", META.fonte], ["Unidade", "hectares (ha)"], ["Média histórica", "média de 1985 a 2024"],
-  ["Leitura", "Os números indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre."],
+const fonteDe = t => TEMAS[t].fonte || META.fonte;
+const leiame = () => [["Fontes", `${META.fonte}; ${TEMAS.v.fonte}`], ["Unidade", "hectares (ha)"], ["Média histórica", "média de 1985 a 2024"],
+  ["Leitura", "Inundação e deslizamento indicam suscetibilidade da área urbana. Não indicam dano nem ocorrência de desastre."],
   ["Favelas", "Polígonos de 2022, fixos em toda a série."]];
 function salvarXlsx(nome, abas) {
   const wb = XLSX.utils.book_new();
@@ -166,14 +172,14 @@ function configGrafico(it, t, m, opts = {}) {
   const cor = i => i === 2 && !opts.png ? css.getPropertyValue(tema.ma).trim() : tema.cores[i];
   return {
     type: "line", plugins: [fundo],
-    data: { labels: META.anos, datasets: CLASSES.map((c, i) => ({ label: c, data: m[i], borderColor: cor(i), backgroundColor: cor(i), borderWidth: opts.png ? 4 : 2.2, pointRadius: 0, pointHitRadius: 8 })).reverse() },
+    data: { labels: META.anos, datasets: tema.classes.map((c, i) => ({ label: c, data: m[i], borderColor: cor(i), backgroundColor: cor(i), borderWidth: opts.png ? 4 : 2.2, pointRadius: 0, pointHitRadius: 8 })).reverse() },
     options: {
       responsive: !opts.png, maintainAspectRatio: false, animation: false, devicePixelRatio: opts.png ? 1 : undefined,
       interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { position: "bottom", labels: { color: tinta, boxWidth: 16, font: { size: opts.png ? 24 : 12 } } },
-        title: { display: !!opts.png, text: `${tema.nome}: área urbana suscetível em ${rotulo(it)}, 1985–2025`, align: "start", color: tinta, font: { size: 32, weight: "600" }, padding: { bottom: 18 } },
-        subtitle: { display: !!opts.png, text: `Fonte: ${META.fonte}`, position: "bottom", align: "start", color: tinta, font: { size: 20 }, padding: { top: 14 } },
+        title: { display: !!opts.png, text: `${tema.nome}: ${tema.titulo} em ${rotulo(it)}, 1985–2025`, align: "start", color: tinta, font: { size: 32, weight: "600" }, padding: { bottom: 18 } },
+        subtitle: { display: !!opts.png, text: `Fonte: ${fonteDe(t)}`, position: "bottom", align: "start", color: tinta, font: { size: 20 }, padding: { top: 14 } },
         tooltip: { callbacks: { label: c => `${c.dataset.label}: ${ha(c.parsed.y)} ha` } },
       },
       scales: {
@@ -189,17 +195,17 @@ function baixarPng(it, t, m) {
   cv.toBlob(b => { ch.destroy(); salvar(`${slug(rotulo(it))}_${slug(TEMAS[t].nome)}.png`, b); });
 }
 
-function tabelaComparacao(m) {
+function tabelaComparacao(m, t) {
   const n = META.anos.length, hoje = n - 1, ontem = n - 2;
   const linhas = [...m, m[0].map((_, i) => soma3(m, i))];
   const tb = el("table");
   const h = tb.insertRow();
   ["Classe", "2025 (ha)", "2024 (ha)", "Média (ha)", "vs. 2024", "vs. média"].forEach(t => h.append(el("th", t)));
-  [...CLASSES, "Total suscetível"].forEach((c, i) => {
+  [...TEMAS[t].classes, TEMAS[t].total].forEach((c, i) => {
     const s = linhas[i], med = media(s.slice(0, hoje)), r = tb.insertRow();
     if (i === 2) r.className = "ma";
     const v24 = pct(s[hoje], s[ontem]), vm = pct(s[hoje], med);
-    r.append(el("td", c), el("td", ha(s[hoje])), el("td", ha(s[ontem])), el("td", ha(med)), el("td", fmtVar(v24), clsVar(v24)), el("td", fmtVar(vm), clsVar(vm)));
+    r.append(el("td", c), el("td", ha(s[hoje])), el("td", ha(s[ontem])), el("td", ha(med)), el("td", fmtVar(v24), clsVar(v24, t)), el("td", fmtVar(vm), clsVar(vm, t)));
   });
   const w = el("div", null, "rolar"); w.append(tb); return w;
 }
@@ -216,22 +222,22 @@ async function abrir(chave) {
   if (atual !== it) return;
   const topo = el("div"); topo.append(el("h2", rotulo(it)), el("p", TIPOS[it.tipo], "muted"));
   const temas = el("div", null, "temas");
-  for (const t of ["f", "l"]) {
+  for (const t of CHAVES) {
     const m = dados[t], box = el("article", null, "tema");
     box.style.setProperty("--c", `var(${TEMAS[t].css})`);
-    box.append(el("h3", TEMAS[t].nome));
-    if (!m) { box.append(el("p", "Sem área urbana mapeada como suscetível em nenhum ano da série.", "muted")); temas.append(box); continue; }
+    box.append(el("h3", TEMAS[t].rotulo || TEMAS[t].nome));
+    if (!m) { box.append(el("p", TEMAS[t].neutro ? "Sem dados para este território." : "Sem área urbana mapeada como suscetível em nenhum ano da série.", "muted")); temas.append(box); continue; }
     const g = el("div", null, "grafico"), cv = el("canvas");
-    cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `${TEMAS[t].nome} em ${rotulo(it)}, área suscetível por classe de 1985 a 2025`);
-    g.append(cv); box.append(g, tabelaComparacao(m));
+    cv.setAttribute("role", "img"); cv.setAttribute("aria-label", `${TEMAS[t].nome} em ${rotulo(it)}, ${TEMAS[t].titulo} por classe de 1985 a 2025`);
+    g.append(cv); box.append(g, tabelaComparacao(m, t));
     const b = el("div", null, "linha"), bp = el("button", "Baixar gráfico (PNG)", "sec");
     bp.onclick = () => baixarPng(it, t, m); b.append(bp); box.append(b);
     temas.append(box);
     graficos.push(new Chart(cv, configGrafico(it, t, m)));
   }
   const bx = el("button", "Baixar dados deste território (Excel)");
-  bx.onclick = () => salvarXlsx(`${slug(rotulo(it))}.xlsx`, ["f", "l"].filter(t => dados[t]).map(t => [TEMAS[t].nome,
-    [["Ano", ...CLASSES.map(c => c + " (ha)"), "Total (ha)"], ...META.anos.map((a, i) => [a, dados[t][0][i], dados[t][1][i], dados[t][2][i], +soma3(dados[t], i).toFixed(2)])]]));
+  bx.onclick = () => salvarXlsx(`${slug(rotulo(it))}.xlsx`, CHAVES.filter(t => dados[t]).map(t => [TEMAS[t].nome,
+    [["Ano", ...TEMAS[t].classes.map(c => c + " (ha)"), "Total (ha)"], ...META.anos.map((a, i) => [a, dados[t][0][i], dados[t][1][i], dados[t][2][i], +soma3(dados[t], i).toFixed(2)])]]));
   const bl = el("button", "Copiar link", "sec");
   bl.onclick = () => navigator.clipboard.writeText(location.href).then(() => toast("Link copiado."), () => toast("Copie o link na barra do navegador."));
   const ac = el("div", null, "linha"); ac.append(bx, bl);
@@ -245,30 +251,31 @@ function filtrados() {
 function desenharRank() {
   const t = $("rTema").value, ls = filtrados(), tb = $("rank"); tb.replaceChildren();
   const h = tb.insertRow();
-  ["Posição", "Território", "Muito alto 2025 (ha)", "Muito alto 2024 (ha)", "Média (ha)", "vs. 2024", "vs. média", "Total 2025 (ha)"].forEach(x => h.append(el("th", x)));
+  const foco = TEMAS[t].classes[2];
+  ["Posição", "Território", `${foco} 2025 (ha)`, `${foco} 2024 (ha)`, "Média (ha)", "vs. 2024", "vs. média", "Total 2025 (ha)"].forEach(x => h.append(el("th", x)));
   ls.slice(0, limite).forEach((it, i) => {
     const v = it[t], r = tb.insertRow(), a = el("a", rotulo(it)), v24 = pct(v[2], v[3]), vm = pct(v[2], v[4]), nm = el("td", null, "nome");
     a.href = "#" + it.chave; nm.append(a);
-    r.append(el("td", i + 1), nm, el("td", ha(v[2])), el("td", ha(v[3])), el("td", ha(v[4])), el("td", fmtVar(v24), clsVar(v24)), el("td", fmtVar(vm), clsVar(vm)), el("td", ha(v[0] + v[1] + v[2])));
+    r.append(el("td", i + 1), nm, el("td", ha(v[2])), el("td", ha(v[3])), el("td", ha(v[4])), el("td", fmtVar(v24), clsVar(v24, t)), el("td", fmtVar(vm), clsVar(vm, t)), el("td", ha(v[0] + v[1] + v[2])));
   });
   $("mais").hidden = ls.length <= limite;
   const precisaUf = (nivel === "mun" || nivel === "fav") && !$("rUf").value;
   $("xSerie").disabled = precisaUf;
-  $("hint").textContent = precisaUf ? "Escolha um estado para baixar a série." : `${fmtN(ls.length)} territórios com área suscetível.`;
+  $("hint").textContent = precisaUf ? "Escolha um estado para baixar a série." : `${fmtN(ls.length)} territórios com dados neste tema.`;
   document.querySelectorAll("#niveis button").forEach(b => b.setAttribute("aria-pressed", b.dataset.n === nivel));
 }
 function baixarRank() {
   const t = $("rTema").value;
-  salvarXlsx(`ranking_${nivel}_${slug(TEMAS[t].nome)}_2025.xlsx`, [["Ranking 2025", [["Posição", "Território", "Estado", "Médio 2025 (ha)", "Alto 2025 (ha)", "Muito alto 2025 (ha)", "Muito alto 2024 (ha)", "Muito alto, média (ha)", "Total 2025 (ha)"],
+  salvarXlsx(`ranking_${nivel}_${slug(TEMAS[t].nome)}_2025.xlsx`, [["Ranking 2025", [["Posição", "Território", "Estado", ...TEMAS[t].classes.map(c => c + " 2025 (ha)"), `${TEMAS[t].classes[2]} 2024 (ha)`, `${TEMAS[t].classes[2]}, média (ha)`, "Total 2025 (ha)"],
     ...filtrados().map((it, i) => [i + 1, it.nome, it.uf, ...it[t], +(it[t][0] + it[t][1] + it[t][2]).toFixed(2)])]]]);
 }
 async function baixarSerie() {
   const uf = $("rUf").value, lista = ITENS.filter(i => i.tipo === nivel && (!uf || i.uf === uf));
   if (!lista.length) return;
   const dados = await serie(lista[0]);
-  const aba = t => [["Território", "Estado", "Ano", ...CLASSES.map(c => c + " (ha)"), "Total (ha)"],
+  const aba = t => [["Território", "Estado", "Ano", ...TEMAS[t].classes.map(c => c + " (ha)"), "Total (ha)"],
     ...lista.flatMap(it => { const m = dados[it.chave]?.[t]; return m ? META.anos.map((a, i) => [it.nome, it.uf, a, m[0][i], m[1][i], m[2][i], +soma3(m, i).toFixed(2)]) : []; })];
-  salvarXlsx(`serie_${nivel}${uf ? "_" + uf : ""}_1985_2025.xlsx`, [["Inundação", aba("f")], ["Deslizamento", aba("l")]]);
+  salvarXlsx(`serie_${nivel}${uf ? "_" + uf : ""}_1985_2025.xlsx`, CHAVES.map(t => [TEMAS[t].nome, aba(t)]));
 }
 
 function buscar() {
@@ -290,12 +297,13 @@ async function iniciar() {
   try {
     const r = await fetch("data/index.json"); if (!r.ok) throw 0;
     const d = await r.json(); META = d.meta;
-    ITENS = d.itens.map(([tipo, id, nome, sub, uf, f, l]) => ({ tipo, id, nome, sub, uf, f, l, chave: `${tipo}-${id}`, busca: norm(`${nome} ${sub}`) }));
+    ITENS = d.itens.map(([tipo, id, nome, sub, uf, f, l, v]) => ({ tipo, id, nome, sub, uf, f, l, v, chave: `${tipo}-${id}`, busca: norm(`${nome} ${sub}`) }));
     ITENS.forEach(i => POR_ID.set(i.chave, i));
   } catch { $("ficha").replaceChildren(el("p", "Não foi possível carregar os dados. Recarregue a página.")); return; }
   $("exemplo").hidden = !META.exemplo;
-  $("cita").textContent = `Fonte: ${META.fonte}.`;
-  $("copiar").onclick = () => navigator.clipboard.writeText(`Fonte: ${META.fonte}.`).then(() => toast("Citação copiada."), () => toast("Selecione o texto da citação e copie."));
+  const cita = `Fontes: ${META.fonte}; ${TEMAS.v.fonte}.`;
+  $("cita").textContent = cita;
+  $("copiar").onclick = () => navigator.clipboard.writeText(cita).then(() => toast("Citação copiada."), () => toast("Selecione o texto da citação e copie."));
   for (const [n, t] of NIVEIS) { const b = el("button", t, "sec"); b.dataset.n = n; b.onclick = () => { nivel = n; limite = 50; desenharRank(); }; $("niveis").append(b); }
   [...new Set(ITENS.filter(i => i.tipo === "mun" || i.tipo === "fav").map(i => i.uf))].sort().forEach(u => $("rUf").append(new Option(u, u)));
   $("rTema").onchange = $("rUf").onchange = () => { limite = 50; desenharRank(); };
